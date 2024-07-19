@@ -1,0 +1,17 @@
+OHLCData{timestamp=2021-01-04T14:30, open=92.130, high=95.180, low=91.420, close=94.565, volume=163060.0}
+OHLCData{timestamp=2021-01-04T15:00, open=94.640, high=96.010, low=94.560, close=95.930, volume=99523.0}
+OHLCData{timestamp=2021-01-04T15:30, open=95.905, high=95.905, low=94.030, close=94.060, volume=73122.0}
+OHLCData{timestamp=2021-01-04T16:00, open=94.000, high=94.220, low=93.000, close=93.190, volume=39999.0}
+OHLCData{timestamp=2021-01-04T16:30, open=93.170, high=93.520, low=92.260, close=92.260, volume=28715.0}
+OHLCData{timestamp=2021-01-04T17:00, open=92.225, high=92.430, low=90.930, close=91.350, volume=72481.0}
+OHLCData{timestamp=2021-01-04T17:30, open=91.330, high=91.865, low=90.960, close=91.820, volume=29673.0}
+OHLCData{timestamp=2021-01-04T18:00, open=91.770, high=91.940, low=91.590, close=91.890, volume=24551.0}
+OHLCData{timestamp=2021-01-04T18:30, open=91.850, high=92.120, low=91.640, close=92.110, volume=18556.0}
+OHLCData{timestamp=2021-01-04T19:00, open=92.100, high=92.210, low=91.730, close=91.930, volume=21463.0}
+OHLCData{timestamp=2021-01-04T19:30, open=91.940, high=92.050, low=91.420, close=91.830, volume=24148.0}
+OHLCData{timestamp=2021-01-04T20:00, open=91.825, high=92.000, low=91.590, close=91.700, volume=17042.0}
+OHLCData{timestamp=2021-01-04T20:30, open=91.800, high=92.310, low=91.580, close=92.280, volume=53693.0}
+OHLCData{timestamp=2021-01-05T14:30, open=92.120, high=93.180, low=91.420, close=92.410, volume=162612.0}
+OHLCData{timestamp=2021-01-05T15:00, open=92.420, high=92.840, low=91.640, close=92.570, volume=71196.0}
+OHLCData{timestamp=2021-01-05T15:30, open=92.610, high=92.690, low=92.060, close=92.230, volume=35414.0}
+OHLCData{timestamp=2021-01-05T16:00, open=92.260, high=92.520, low=91.685, close=92.010, volume=36300.0}
