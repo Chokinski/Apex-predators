@@ -4,7 +4,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Side;
 import javafx.scene.chart.ValueAxis;
-import javafx.scene.chart.XYChart;
+
 import javafx.scene.chart.XYChart.Data;
 import javafx.scene.chart.XYChart.Series;
 import javafx.util.StringConverter;
@@ -16,19 +16,19 @@ import java.util.List;
 
 public class CurrencyAxis extends ValueAxis<Double> {
 
-    private double lowerBound;
-    private double upperBound; // Default upper bound
     private OHLCChart chart;
+    private Range range;
+    private int MAX_TICK_COUNT = 7; // Adjust as needed
 
-    private int MAX_TICK_COUNT = 5; // Adjust as needed
-
-    public CurrencyAxis() {
-        this(0, 100, null);
+    public CurrencyAxis(double lb, double ub, OHLCChart c) {
+        
         setAutoRanging(false);
         setSide(Side.RIGHT);
         setTickLabelsVisible(true);
         setTickLabelGap(5);
-        setAnimated(true);
+        setAnimated(false);
+        this.chart = c; // Store reference to the chart
+        this.range = new Range(lb, ub);
         
 
         // Set the formatter for tick labels
@@ -41,7 +41,7 @@ public class CurrencyAxis extends ValueAxis<Double> {
                 }
 
                 double val = value;
-                double range = upperBound - lowerBound;
+                double range = ub - lb;
                 DecimalFormat df;
 
                 if (range > 1_000_000) {
@@ -64,44 +64,11 @@ public class CurrencyAxis extends ValueAxis<Double> {
     }
 
 
-    public CurrencyAxis(double lowerBound, double upperBound, OHLCChart chart) {
-        this.lowerBound = lowerBound;
-        this.upperBound = upperBound;
-        this.chart = chart; // Store reference to the chart
 
-        // Set the formatter for tick labels
-        setTickLabelFormatter(new StringConverter<Double>() {
-            @Override
-            public String toString(Double value) {
-                if (value == null) {
-                    return "";
-                }
-
-                double val = value;
-                double range = upperBound - lowerBound;
-                DecimalFormat df;
-
-                if (range > 1_000_000) {
-                    df = new DecimalFormat("$0.##M");
-                } else if (range > 1000) {
-                    df = new DecimalFormat("$0.##K");
-                } else {
-                    df = new DecimalFormat("$0.##");
-                }
-
-                return df.format(val / (range > 1_000_000 ? 1_000_000 : (range > 1000 ? 1000 : 1)));
-            }
-
-            @Override
-            public Double fromString(String string) {
-                return null; // Not needed for formatting
-            }
-        });
-    }
 
     public static class Range {
-        final double lowerBound;
-        final double upperBound;
+        double lowerBound;
+        double upperBound;
 
         Range(double lowerBound, double upperBound) {
             this.lowerBound = lowerBound;
@@ -110,17 +77,14 @@ public class CurrencyAxis extends ValueAxis<Double> {
     }
 
     public void setBounds(double lowerBound, double upperBound) {
-        this.lowerBound = lowerBound;
-        this.upperBound = upperBound;
-        if (chart != null) {
-            chart.updateAxisRange();
-        }
+        this.range = new Range(lowerBound, upperBound);
         requestAxisLayout();
+
     }
 
     @Override
     protected Range getRange() {
-        return new Range(this.lowerBound, this.upperBound);
+        return range;
     }
 
     
@@ -128,12 +92,13 @@ public class CurrencyAxis extends ValueAxis<Double> {
     @Override
     protected List<Double> calculateTickValues(double length, Object range) {
         if (range == null || !(range instanceof Range)) {
+            System.out.println("Currency Range is not of type Range or etc...");
             return FXCollections.observableArrayList();
         }
     
         Range r = (Range) range;
         double rangeInValue = r.upperBound - r.lowerBound;
-        double tickInterval = rangeInValue / (MAX_TICK_COUNT - 1);
+        double tickInterval = Math.max(1, rangeInValue / (MAX_TICK_COUNT - 1));
     
         return calculateTickPositions(r.lowerBound, r.upperBound, tickInterval);
     }
@@ -141,12 +106,13 @@ public class CurrencyAxis extends ValueAxis<Double> {
     private List<Double> calculateTickPositions(double lower, double upper, double tickInterval) {
         List<Double> tickValues = new ArrayList<>();
         double tickValue = lower;
-
-        while (tickValue <= upper) {
+    
+        // Loop to calculate tick positions with careful handling of floating-point precision
+        while (tickValue <= upper + 1e-9) { // Adding a small epsilon to ensure inclusion of upper bound
             tickValues.add(tickValue);
-            tickValue += tickInterval;
+            tickValue = Math.round((tickValue + tickInterval) * 1e9) / 1e9; // Rounding to avoid floating-point inaccuracies
         }
-
+    
         return tickValues;
     }
 
@@ -157,7 +123,7 @@ public class CurrencyAxis extends ValueAxis<Double> {
             return "";
         }
 
-        double range = this.upperBound - this.lowerBound;
+        double range = this.range.upperBound - this.range.lowerBound;
         DecimalFormat df;
 
         if (range > 1_000_000) {
@@ -188,9 +154,9 @@ public class CurrencyAxis extends ValueAxis<Double> {
 
 @Override
 public Double getValueForDisplay(double displayPosition) {
-    double range = upperBound - lowerBound;
+    double range = this.range.upperBound - this.range.lowerBound;
     if (range == 0) {
-        return lowerBound;
+        return this.range.lowerBound;
     }
 
     double axisLength = getSide().isHorizontal() ? getWidth() : getHeight();
@@ -200,18 +166,18 @@ public Double getValueForDisplay(double displayPosition) {
         displayPosition = axisLength - displayPosition;
     }
 
-    return lowerBound + (displayPosition / axisLength) * range;
+    return this.range.lowerBound + (displayPosition / axisLength) * range;
 }
 
 @Override
 public double getDisplayPosition(Double value) {
-    double range = upperBound - lowerBound;
+    double range = this.range.upperBound - this.range.lowerBound;
     if (range == 0) {
         return 0;
     }
 
     double axisLength = getSide().isHorizontal() ? getWidth() : getHeight();
-    double position = (value - lowerBound) / range * axisLength;
+    double position = (value - this.range.lowerBound) / range * axisLength;
 
     // Invert the position for vertical axis to make larger values go up
     if (getSide().isVertical()) {
@@ -221,22 +187,7 @@ public double getDisplayPosition(Double value) {
     return position;
 }
 
-    private double calculateTickUnit(double lowerBound, double upperBound, double length) {
-        double range = upperBound - lowerBound;
-        double minimumTickUnit = 1.0;
 
-        double averageTickGap = range / (length / 100);
-        double multiplier = Math.pow(10, Math.floor(Math.log10(averageTickGap)));
-
-        for (double tickUnitCandidate : new double[]{1, 2, 5, 10, 20, 50, 100, 200, 500}) {
-            double roundedAverageTickGap = tickUnitCandidate * multiplier;
-            if (Math.floor(range / roundedAverageTickGap) >= (length / 100)) {
-                return roundedAverageTickGap;
-            }
-        }
-
-        return minimumTickUnit * multiplier;
-    }
 
     @Override
     protected void setRange(Object range, boolean animate) {
@@ -277,39 +228,34 @@ public double getDisplayPosition(Double value) {
         return minorTickMarks;
     }
 
-    public void invalidateRangeInternal(OHLCChart chart) {
-        this.chart = chart; // Update the chart reference if needed
-    
-        if (chart == null) {
-            return;
-        }
-    
+    public void invalidateRangeInternal(Double[] l) {
+        
         double minCurrency = Double.MAX_VALUE;
         double maxCurrency = Double.MIN_VALUE;
     
         List<Series<LocalDateTime, Double>> data = chart.getChartData();
     
-        // Iterate through all series and their data points to find min and max currency values
-        for (Series<LocalDateTime, Double> series : data) {
-            for (Data<LocalDateTime, Double> dataPoint : series.getData()) {
-                Double currencyValue = dataPoint.getYValue();
-                if (currencyValue != null) {
-                    if (currencyValue == null || currencyValue < minCurrency) {
-                        minCurrency = currencyValue;
+
+                    if (l[0] < minCurrency) {
+                        minCurrency = l[0];
                     }
-                    if (currencyValue == null || currencyValue > maxCurrency) {
-                        maxCurrency = currencyValue;
+                    if (l[1]> maxCurrency) {
+                        maxCurrency = l[1];
                     }
-                }
-            }
-        }
+                
+        
     
         // Only update bounds if they have changed significantly
-        if (minCurrency != this.lowerBound || maxCurrency != this.upperBound) {
+        if (minCurrency != range.lowerBound || maxCurrency != range.upperBound) {
             setBounds(minCurrency, maxCurrency);
-            calculateTickValues(maxCurrency, getRange());
+            range.lowerBound = minCurrency;
+            range.upperBound = maxCurrency;
+            calculateTickValues(maxCurrency, range);
             requestAxisLayout();
         }
-        //setAutoRanging(true);
+        
+    }
+    public void giveChart(OHLCChart chart) {
+        this.chart = chart;
     }
 }

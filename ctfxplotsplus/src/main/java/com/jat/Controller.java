@@ -44,20 +44,24 @@ public class Controller {
             System.out.println("\nmocking Data...\n\n");
             ObservableList<OHLCData> data = plotHandler.mockData();
             System.out.println("Showing chart....\n\n");
-            plotHandler.showOHLCChart(scrollPane, anchorForChart, true, 20, data);
-            this.chart = plotHandler.getOHLCChart();
-
-            if (chart != null) {
+            plotHandler.showOHLCChart(scrollPane, anchorForChart, true, 1000, data);
+            
+            //this.chart = plotHandler.getOHLCChart();
+            //System.out.println("Recieved chart instance: " + chart);
+            /*if (chart != null) {
                 System.out.println("Chart initialized with data: " + data.size() + " points");
-
+                
                 // Ensure the chart is fully laid out and updated
                 Platform.runLater(() -> {
+                    System.out.println("Attempting layoutplot...");
                     chart.layoutPlotChildren();
+                    System.out.println("Chart layout complete.");
                     chart.requestLayout();
+                    System.out.println("Chart requested layout.");
                 });
             } else {
                 System.err.println("Chart instance is null.");
-            }
+            }*/
         } catch (Exception e) {
             e.printStackTrace();
         }

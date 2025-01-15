@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Main",
+            "request": "launch",
+            "mainClass": "ctfxplotsplus/com.jat.Main",
+            "projectName": "ctfxplotsplus"
+        },
+        {
+            "type": "java",
             "name": "Current File",
             "request": "launch",
             "mainClass": "${file}"
@@ -14,7 +21,7 @@
             "type": "java",
             "name": "Main",
             "request": "launch",
-            "mainClass": "com.jat/com.jat.Main",
+            "mainClass": "Main",
             "projectName": "ctfxplotsplus"
         }
     ]

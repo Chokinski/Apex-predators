@@ -6,6 +6,7 @@ import javafx.collections.ObservableList;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.chart.XYChart;
+
 import javafx.scene.control.Tooltip;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
@@ -14,6 +15,7 @@ import javafx.scene.shape.Rectangle;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 public class OHLCChart extends XYChart<LocalDateTime, Double> {
@@ -31,16 +33,14 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
         setTitle("OHLC Chart");
         xAxis.setLabel("Time");
         yAxis.setLabel("Price");
-
         setData(FXCollections.observableArrayList());
 
-        // Initial series setup
+        // Initial rendering setup
         Series<LocalDateTime, Double> series = new Series<>();
-        addDataToSeries(series);
         getData().add(series);
 
-        // Ensure initial rendering
-        Platform.runLater(this::layoutPlotChildren);
+        // Incremental rendering
+        //renderCandlesticksIncrementally();
     }
 
         /*TODO: -For dev use, copy template [], allow copilot to check code if its done, if not, copi states [NEED] if finished and states [NEED] copilot will update to [DONE]- 
@@ -59,157 +59,203 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
         *  The chart... responsive to user input, such as resizing the chart area, changing the time period displayed, and selecting data points. 
 
         */
-    public void setSeries(ObservableList<OHLCData> ohlcDataList) {
-        this.ohlcDataList = ohlcDataList;
-        Series<LocalDateTime, Double> series = new Series<>();
-        addDataToSeries(series);
+        public void setSeries(ObservableList<OHLCData> ohlcDataList) {
+            this.ohlcDataList = ohlcDataList;
+        
+            // Split the data into smaller chunks
+            int chunkSize = 500; // Adjust as needed
+            int totalChunks = (int) Math.ceil((double) ohlcDataList.size() / chunkSize);
+        
+            CompletableFuture.runAsync(() -> {
+                for (int i = 0; i < totalChunks; i++) {
+                    int start = i * chunkSize;
+                    int end = Math.min(start + chunkSize, ohlcDataList.size());
+                    ObservableList<OHLCData> chunk = FXCollections.observableArrayList(ohlcDataList.subList(start, end));
+        
+                    Platform.runLater(() -> {
+                        Series<LocalDateTime, Double> series = new Series<>();
+                        chunk.forEach(data -> series.getData().add(toChartData(data)));
+                        getData().add(series);
+                        
+                    });
+                     // Update the axis range dynamically
+                    // Add a small delay if necessary for UI responsiveness
+                    try {
+                        Thread.sleep(50); // Adjust as needed
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            });
+            
+        }
+    private void renderCandlesticksIncrementally() {
+        int chunkSize = 500; // Number of candlesticks per chunk
+        int totalChunks = (int) Math.ceil((double) ohlcDataList.size() / chunkSize);
 
-        Platform.runLater(() -> {
-            ObservableList<Series<LocalDateTime, Double>> chartData = getData();
-            if (chartData != null) {
-                chartData.setAll(series);
-                layoutPlotChildren();
-            } else {
-                System.err.println("Chart data is null. Cannot update series.");
+        CompletableFuture.runAsync(() -> {
+            for (int i = 0; i < totalChunks; i++) {
+                int start = i * chunkSize;
+                int end = Math.min(start + chunkSize, ohlcDataList.size());
+                List<OHLCData> chunk = ohlcDataList.subList(start, end);
+
+                Platform.runLater(() -> {
+                    chunk.forEach(data -> {
+                        Node candlestick = createCandleStick(data);
+                        if (candlestick != null) {
+                            getPlotChildren().add(candlestick);
+                        }
+                    });
+                    
+                });
+
+                try {
+                    Thread.sleep(50); // Adjust delay for smoother rendering
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
             }
         });
+        
+    }
+    private XYChart.Data<LocalDateTime, Double> toChartData(OHLCData ohlcData) {
+        return new XYChart.Data<>(ohlcData.getDateTime(), ohlcData.getClose());
+    }
+    @Override
+    protected void layoutPlotChildren() {
+        // Efficient rendering by skipping unnecessary operations
+        if (ohlcDataList == null || ohlcDataList.isEmpty()) {
+            return;
+        }
+        int chunkSize = 500; // Number of candlesticks per chunk
+        int totalChunks = (int) Math.ceil((double) ohlcDataList.size() / chunkSize);
+        getPlotChildren().clear();
+        CompletableFuture.runAsync(() -> {
+            for (int i = 0; i < totalChunks; i++) {
+                int start = i * chunkSize;
+                int end = Math.min(start + chunkSize, ohlcDataList.size());
+                List<OHLCData> chunk = ohlcDataList.subList(start, end);
 
-        // Update axis range after setting new data
-        updateAxisRange();
+                Platform.runLater(() -> {
+                    chunk.forEach(data -> {
+                        Node candlestick = createCandleStick(data);
+                        if (candlestick != null) {
+                            getPlotChildren().add(candlestick);
+                        }
+                    });
+                    
+                });
+
+                try {
+                    Thread.sleep(50); // Adjust delay for smoother rendering
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        });
     }
 
+    private Node createCandleStick(OHLCData ohlcData) {
+        double openValue = ohlcData.getOpen();
+        double highValue = ohlcData.getHigh();
+        double lowValue = ohlcData.getLow();
+        double closeValue = ohlcData.getClose();
+
+        double candleWidth = calculateCandleWidth();
+        double candleHeight = calculateCandleHeight(openValue, closeValue);
+        double bodyY = Math.min(yAxis.getDisplayPosition(openValue), yAxis.getDisplayPosition(closeValue));
+
+        double upperWickStartY = yAxis.getDisplayPosition(highValue);
+        double lowerWickEndY = yAxis.getDisplayPosition(lowValue);
+
+        Rectangle body = new Rectangle();
+        body.setWidth(candleWidth);
+        body.setHeight(candleHeight);
+        body.setFill(closeValue >= openValue ? Color.GREEN : Color.RED);
+        body.setY(bodyY);
+        Line upperWick = new Line(candleWidth / 2, upperWickStartY, candleWidth / 2, bodyY);
+        upperWick.setStroke(closeValue >= openValue ? Color.GREEN : Color.RED);
+
+        Line lowerWick = new Line(candleWidth / 2, bodyY + candleHeight, candleWidth / 2, lowerWickEndY);
+        lowerWick.setStroke(closeValue >= openValue ? Color.GREEN : Color.RED);
+
+        Group candlestick = new Group(body, upperWick, lowerWick);
+        candlestick.setLayoutX(getXAxis().getDisplayPosition(ohlcData.getDateTime()) - candleWidth / 2);
+        //candlestick.setLayoutY(getYAxis().getDisplayPosition(Math.max(openValue, closeValue)));
+        Tooltip tooltip = new Tooltip(
+                "DateTime: " + ohlcData.getDateTime() + "\n" +
+                        "Open: " + ohlcData.getOpen() + "\n" +
+                        "High: " + ohlcData.getHigh() + "\n" +
+                        "Low: " + ohlcData.getLow() + "\n" +
+                        "Close: " + ohlcData.getClose()
+        );
+        Tooltip.install(candlestick, tooltip);
+
+        return candlestick;
+    }
     // Method to get the current chart data
     public List<XYChart.Series<LocalDateTime, Double>> getChartData() {
         return getData();
     }
 
+    public LocalDateTime[] getDataMinMax() {
+        LocalDateTime minDate = LocalDateTime.MAX;
+        LocalDateTime maxDate = LocalDateTime.MIN;
+        for (XYChart.Series<LocalDateTime, Double> series : getData()) {
+            for (XYChart.Data<LocalDateTime, Double> y : series.getData()) {
+                if (y.getXValue().isBefore(minDate)) {
+                    minDate = y.getXValue();
+                }
+                if (y.getXValue().isAfter(maxDate)) {
+                    maxDate = y.getXValue();
+                }
+            }
+        
+        }
+        return new LocalDateTime[] { minDate, maxDate };
+
+    }
+
+    public Double[] getDataMinMaxy() {
+        Double minval = Double.MAX_VALUE;
+        Double maxval = Double.MIN_VALUE;
+        for (XYChart.Series<LocalDateTime, Double> series : getData()) {
+            for (XYChart.Data<LocalDateTime, Double> y : series.getData()) {
+                if (y.getYValue() < minval) {
+                    minval = y.getYValue();
+                }
+
+                if (y.getYValue() > maxval) {
+                    maxval = y.getYValue();
+                }
+            }
+        
+        }
+        return new Double[] { minval, maxval };
+
+    }
+    private double calculateCandleWidth() {
+        if (ohlcDataList.size() < 2) {
+            return 10; // Default width
+        }
+
+        double axisLength = xAxis.getWidth();
+        double numDataPoints = ohlcDataList.size();
+        double candleWidthFraction = 0.2; // Space allocation per candle
+
+        double calculatedWidth = (axisLength / numDataPoints) * candleWidthFraction;
+        return Math.max(1.5, calculatedWidth); // Ensure minimum width
+    }
+
+    private double calculateCandleHeight(Double o, Double c) {
+        return (Math.abs(yAxis.getDisplayPosition(o) - yAxis.getDisplayPosition(c)));
+    }
+
     @Override
     protected void updateAxisRange() {
-        xAxis.invalidateRangeInternal(this);
-        yAxis.invalidateRangeInternal(this);
+        xAxis.invalidateRangeInternal(getDataMinMax());
+        yAxis.invalidateRangeInternal(getDataMinMaxy());
     }
-
-    private void addDataToSeries(Series<LocalDateTime, Double> series) {
-        if (ohlcDataList == null) {
-            throw new IllegalStateException("ohlcDataList cannot be null");
-        }
-
-        List<XYChart.Data<LocalDateTime, Double>> dataToAdd = ohlcDataList.stream()
-                .map(this::toChartData)
-                .collect(Collectors.toList());
-
-        series.getData().addAll(dataToAdd);
-    }
-
-    private XYChart.Data<LocalDateTime, Double> toChartData(OHLCData ohlcData) {
-        return new XYChart.Data<>(ohlcData.getDateTime(), ohlcData.getClose());
-    }
-
-@Override
-protected void layoutPlotChildren() {
-    if (getData().isEmpty()) {
-        return;
-    }
-
-    Series<LocalDateTime, Double> series = getData().get(0);
-    getPlotChildren().clear();
-        Map<LocalDateTime, OHLCData> ohlcDataMap = ohlcDataList.stream()
-                .collect(Collectors.toMap(OHLCData::getDateTime, ohlcData -> ohlcData));
-    // Use ohlcDataMap for fast lookup
-    for (XYChart.Data<LocalDateTime, Double> item : series.getData()) {
-        LocalDateTime dateTime = item.getXValue();
-        Double closeValue = item.getYValue();
-
-        if (dateTime == null || closeValue == null) {
-            continue;
-        }
-
-        OHLCData ohlcData = ohlcDataMap.get(dateTime); // Retrieve OHLCData from map
-
-        if (ohlcData == null) {
-            continue;
-        }
-
-        Node node = createCandleStick(ohlcData);
-        if (node != null) {
-            getPlotChildren().add(node);
-        }
-    }
-}
-
-private Node createCandleStick(OHLCData ohlcData) {
-    double openValue = ohlcData.getOpen();
-    double highValue = ohlcData.getHigh();
-    double lowValue = ohlcData.getLow();
-    double closeValue = ohlcData.getClose();
-
-    double candleWidth = calculateCandleWidth();
-    double bodyHeight = Math.abs(yAxis.getDisplayPosition(openValue) - yAxis.getDisplayPosition(closeValue));
-    double bodyY = Math.min(yAxis.getDisplayPosition(openValue), yAxis.getDisplayPosition(closeValue));
-
-    double upperWickHeight = yAxis.getDisplayPosition(highValue) - bodyY;
-    double lowerWickHeight = yAxis.getDisplayPosition(lowValue) - (bodyY + bodyHeight);
-
-    // Create the candle body
-    Rectangle body = new Rectangle();
-    body.setWidth(candleWidth);
-    body.setHeight(bodyHeight);
-    body.setFill(closeValue >= openValue ? Color.GREEN : Color.RED);
-
-    // Create the upper wick
-    Line upperWick = new Line();
-    upperWick.setStartX(candleWidth / 2);
-    upperWick.setEndX(candleWidth / 2);
-    upperWick.setStartY(0); // Start from the top of the body
-    upperWick.setEndY(upperWickHeight);
-    upperWick.setStroke(closeValue >= openValue ? Color.GREEN : Color.RED);
-
-    // Create the lower wick
-    Line lowerWick = new Line();
-    lowerWick.setStartX(candleWidth / 2);
-    lowerWick.setEndX(candleWidth / 2);
-    lowerWick.setStartY(bodyHeight); // Start from the bottom of the body
-    lowerWick.setEndY(bodyHeight + lowerWickHeight);
-    lowerWick.setStroke(closeValue >= openValue ? Color.GREEN : Color.RED);
-
-    // Create the candlestick group and add body and wicks
-    Group candlestick = new Group();
-    candlestick.getChildren().addAll(body, upperWick, lowerWick);
-    candlestick.getStyleClass().add("candlestick");
-
-    // Add tooltip
-    Tooltip tooltip = new Tooltip(
-            "DateTime: " + ohlcData.getDateTime() + "\n" +
-            "Open: " + ohlcData.getOpen() + "\n" +
-            "High: " + ohlcData.getHigh() + "\n" +
-            "Low: " + ohlcData.getLow() + "\n" +
-            "Close: " + ohlcData.getClose()
-    );
-    Tooltip.install(candlestick, tooltip);
-
-    // Set candlestick position
-    candlestick.setLayoutX(getXAxis().getDisplayPosition(ohlcData.getDateTime()) - candleWidth / 2);
-    candlestick.setLayoutY(bodyY);
-
-    return candlestick;
-}
-
-
-
-private double calculateCandleWidth() {
-    if (ohlcDataList.size() < 2) {
-        return 10; // Default width if there are less than 2 data points
-    }
-
-    double axisLength = xAxis.getWidth(); // get the width of the xAxis
-    double numDataPoints = ohlcDataList.size();
-    double candleWidthFraction = 0.2; // fraction of the space allocated to each candle
-
-    double calculatedWidth = (axisLength / numDataPoints) * candleWidthFraction;
-    double minCandleWidth = 1.36; // Minimum candle width
-    //System.out.println("Calculated candle width: " + calculatedWidth);
-    return Math.max(minCandleWidth, calculatedWidth);
-}
 
     @Override
     protected void dataItemAdded(Series<LocalDateTime, Double> series, int itemIndex, Data<LocalDateTime, Double> item) {

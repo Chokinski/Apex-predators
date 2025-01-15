@@ -1,8 +1,8 @@
 .axis {
     -fx-minor-tick-visible: true;
     -fx-minor-tick-length: 3.0px;
-    -fx-tick-label-fill: #bdbdbd;
-    -fx-tick-mark-stroke: #bdbdbd;
+    -fx-tick-label-fill: #ffffff;
+    -fx-tick-mark-stroke: #ffffff;
     -fx-tick-label-gap: 10.0px;
 }
 
@@ -12,7 +12,7 @@
 }
 
 .chart {
-    -fx-background-color: rgb(37, 36, 48);
+    -fx-background-color: rgb(0, 0, 0);
     -fx-legend-visible: false;
 }
 
@@ -21,20 +21,20 @@
 }
 
 .chart .chart-alternative-row-fill {
-    -fx-fill: rgba(52, 73, 94, 1);
+    -fx-fill: rgb(0, 0, 0);
 }
 
 .chart .chart-horizontal-grid-lines {
-    -fx-stroke: rgba(149, 165, 166, 1);
+    -fx-stroke: rgb(255, 255, 255);
 }
 
 .ohlc-chart .chart-vertical-grid-lines {
-    -fx-stroke: rgba(149, 165, 166, 1);
+    -fx-stroke: rgb(255, 255, 255);
 
 }
 
 .chart-plot-background {
-    -fx-background-color: rgba(44, 62, 80, 1);
+    -fx-background-color: rgb(0, 0, 0);
 
 }
 

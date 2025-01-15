@@ -14,22 +14,21 @@ public class DateTimeAxis extends Axis<LocalDateTime> {
     private LocalDateTime upperBound;
     private OHLCChart chart;
     private int MAX_TICK_COUNT = 20;
+    private Range range;
     
-    public DateTimeAxis() {
-        this(LocalDateTime.now().minusDays(7), LocalDateTime.now(), null);
-        setAutoRanging(true); // Disable auto-ranging
+    public DateTimeAxis(LocalDateTime lowerBound, LocalDateTime upperBound, OHLCChart chart) {
+        //this(lowerBound, upperBound, chart);
+        setAutoRanging(false); // Disable auto-ranging
         setSide(Side.BOTTOM);
         setTickLabelsVisible(true);
         setTickLabelGap(5);
         setAnimated(false);
         this.getStyleClass().add("axis-datetime");
         this.tickLengthProperty().set(50);
-    }
-    
-    public DateTimeAxis(LocalDateTime lowerBound, LocalDateTime upperBound, OHLCChart chart) {
         this.lowerBound = lowerBound;
         this.upperBound = upperBound;
         this.chart = chart; // Store reference to the chart
+        this.range = new Range(lowerBound, upperBound);
     }
     
         static class Range {
@@ -56,9 +55,6 @@ public class DateTimeAxis extends Axis<LocalDateTime> {
             //System.out.println("Setting DateTimeAxis bounds: " + lowerBound + " to " + upperBound);
             this.lowerBound = lowerBound;
             this.upperBound = upperBound;
-            if (chart != null) {
-                chart.updateAxisRange();
-            }
             requestAxisLayout();
         }
 
@@ -80,7 +76,7 @@ public class DateTimeAxis extends Axis<LocalDateTime> {
         long rangeInMinutes = r.lowerBound.until(r.upperBound, java.time.temporal.ChronoUnit.MINUTES);
 
         // Calculate the tick interval based on the maximum tick count
-        long tickInterval = rangeInMinutes / (MAX_TICK_COUNT - 1); // Ensures MAX_TICK_COUNT ticks including endpoints
+        long tickInterval = Math.max(1, rangeInMinutes / (MAX_TICK_COUNT - 1));
 
         return calculateTickPositions(r.lowerBound, r.upperBound, tickInterval);
     }
@@ -89,10 +85,10 @@ public class DateTimeAxis extends Axis<LocalDateTime> {
         List<LocalDateTime> tickValues = new ArrayList<>();
         LocalDateTime tickValue = lower;
 
-        while (!tickValue.isAfter(upper) || tickValue.isEqual(upper) || tickValues.size() < MAX_TICK_COUNT) {
-            tickValues.add(tickValue);
-            tickValue = tickValue.plusMinutes(tickInterval);
-        }
+while (!tickValue.isAfter(upper) && tickValues.size() < MAX_TICK_COUNT) {
+    tickValues.add(tickValue);
+    tickValue = tickValue.plusMinutes(tickInterval);
+}
 
         return tickValues;
     }
@@ -170,41 +166,37 @@ public class DateTimeAxis extends Axis<LocalDateTime> {
         }
     }
 
-    public void invalidateRangeInternal(OHLCChart chart) {
+    public void invalidateRangeInternal(LocalDateTime[] l) {
         // Use the OHLCChart instance to get the chart data
-        List<XYChart.Series<LocalDateTime, Double>> data = chart.getChartData();
-    
-        if (chart == null || data.isEmpty()) {
-            return;
-        }
     
         LocalDateTime minDateTime = LocalDateTime.MAX;
         LocalDateTime maxDateTime = LocalDateTime.MIN;
-    
-        // Iterate through all series and their data points to find min and max LocalDateTime
-        for (XYChart.Series<LocalDateTime, Double> series : data) {
-            for (XYChart.Data<LocalDateTime, Double> dataPoint : series.getData()) {
-                LocalDateTime dateTime = dataPoint.getXValue();
-                if (dateTime != null) {
-                    if (dateTime.isBefore(minDateTime)) {
-                        minDateTime = dateTime;
+        LocalDateTime m = l[0];
+        LocalDateTime n = l[1];
+
+
+                    if (m.isBefore(minDateTime)) {
+                        minDateTime = m;
                     }
-                    if (dateTime.isAfter(maxDateTime)) {
-                        maxDateTime = dateTime;
+                    if (n.isAfter(maxDateTime)) {
+                        maxDateTime = n;
                     }
-                }
-            }
-        }
+
+            
+        
     
         //System.out.println("Calculated minDateTime: " + minDateTime + ", maxDateTime: " + maxDateTime);
         // Set the bounds based on the found min and max LocalDateTime
-        if ((minDateTime != null && maxDateTime != null) || minDateTime!=this.lowerBound || maxDateTime!=this.upperBound) {
+        if (minDateTime!=this.lowerBound || maxDateTime!=this.upperBound) {
             setBounds(minDateTime, maxDateTime);
-            calculateTickValues(MAX_TICK_COUNT, getRange());
+            calculateTickValues(MAX_TICK_COUNT, range);
             requestAxisLayout();
             
         }
         setAutoRanging(true);
         
+    }
+    public void giveChart(OHLCChart chart) {
+        this.chart = chart;
     }
 }

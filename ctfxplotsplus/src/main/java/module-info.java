@@ -1,4 +1,4 @@
-module com.jat {
+module com.jat.ctfxplotsplus {
     requires transitive javafx.controls;
     requires javafx.fxml;
     requires transitive javafx.graphics;

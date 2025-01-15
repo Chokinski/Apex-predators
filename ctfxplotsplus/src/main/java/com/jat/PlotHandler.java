@@ -3,8 +3,6 @@ package com.jat;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.chart.Axis;
-import javafx.scene.chart.XYChart;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.AnchorPane;
 
@@ -41,6 +39,25 @@ public class PlotHandler {
 
         return new LocalDateTime[] { minDate, maxDate };
     }
+    private Double[] getMinMaxVals(List<OHLCData> ohlcdatalist) {
+        double minVal = Double.MAX_VALUE;
+        double maxVal = Double.MIN_VALUE;
+
+        for (OHLCData ohlcData : ohlcdatalist) {
+            double lval = ohlcData.getLow();
+            if (lval < minVal) {
+                minVal = lval;
+            }
+            double hval = ohlcData.getHigh();
+            if (hval > maxVal) {
+                maxVal = hval;
+            }
+        }
+
+        return new Double[] { minVal, maxVal };
+
+
+    }
 
     public void updateAxesRanges() {
     chart.updateAxisRange();
@@ -51,8 +68,8 @@ public class PlotHandler {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
     
         try (InputStream is = getClass().getResourceAsStream("/data.txt");
-             InputStreamReader isr = new InputStreamReader(is);
-             BufferedReader reader = new BufferedReader(isr)) {
+            InputStreamReader isr = new InputStreamReader(is);
+            BufferedReader reader = new BufferedReader(isr)) {
     
             String line;
             while ((line = reader.readLine()) != null) {
@@ -71,29 +88,38 @@ public class PlotHandler {
                 OHLCData ohlc = new OHLCData(timestamp, open, high, low, close, volume);
                 ohlcData.add(ohlc);
             }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
-    
         return ohlcData;
     }
 
     public void showOHLCChart(ScrollPane parent, AnchorPane pane, boolean resizable, int pageSize,
         ObservableList<OHLCData> ohlcDataList) throws IOException {
         LocalDateTime[] dates = getMinMaxDates(ohlcDataList);
-        DateTimeAxis xAxis = new DateTimeAxis();
-        CurrencyAxis yAxis = new CurrencyAxis();
+        Double[] vals = getMinMaxVals(ohlcDataList);
+        DateTimeAxis xAxis = new DateTimeAxis(dates[0], dates[1],chart);
+        CurrencyAxis yAxis = new CurrencyAxis(vals[0], vals[1],chart);
 
         this.chart = new OHLCChart(xAxis, yAxis, ohlcDataList);
+        xAxis.giveChart(chart);
+        yAxis.giveChart(chart);
         chart.setSeries(ohlcDataList);
+        System.out.println("Chart series set");
+        for( OHLCData ohlc : ohlcDataList) {
+            System.out.println(ohlc);
+        }
         displayChart(pane);
 
         chart.prefWidthProperty().bind(pane.widthProperty());
         chart.prefHeightProperty().bind(pane.heightProperty());
         chart.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-
+        System.out.println("Bounds set.");
         setParent(parent);
+        System.out.println("Parent set.");
         setResizable(resizable);
+        System.out.println("Resizable set.");
     }
 
     public void displayChart(AnchorPane pane) {
