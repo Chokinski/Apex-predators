@@ -1,0 +1,69 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.jat</groupId>
+    <artifactId>ctfxplotsplus</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <sdk>C:/Program Files/Java/javafx-sdk-23.0.1/lib/</sdk>
+    </properties>
+    <dependencies>
+<dependency>
+    <groupId>org.openjfx</groupId>
+    <artifactId>javafx.controls</artifactId>
+    <version>23.0.1</version> <!-- Ensure this matches your version -->
+    <scope> system</scope>
+    <systemPath>${sdk}javafx.controls.jar</systemPath>
+</dependency>
+<dependency>
+    <groupId>org.openjfx</groupId>
+    <artifactId>javafx.graphics</artifactId>
+    <version>23.0.1</version> <!-- Ensure this matches your version -->
+    <scope> system</scope>
+    <systemPath>${sdk}javafx.graphics.jar</systemPath>
+</dependency>
+<dependency>
+    <groupId>org.openjfx</groupId>
+    <artifactId>javafx.fxml</artifactId>
+    <version>23.0.1</version> <!-- Ensure this matches your version -->
+    <scope> system</scope>
+    <systemPath>${sdk}javafx.fxml.jar</systemPath>
+</dependency>
+<dependency>
+    <groupId>org.openjfx</groupId>
+    <artifactId>javafx.base</artifactId>
+    <version>23.0.1</version> <!-- Ensure this matches your version -->
+    <scope> system</scope>
+    <systemPath>${sdk}javafx.base.jar</systemPath>
+</dependency>     
+          
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.0</version>
+                <configuration>
+                    <release>11</release>
+                </configuration>
+            </plugin>
+
+                    <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <version>3.2.0</version>
+            <configuration>
+                <archive>
+                    <manifestEntries>
+                        <Automatic-Module-Name>ctfxplotsplus</Automatic-Module-Name>
+                    </manifestEntries>
+                </archive>
+            </configuration>
+        </plugin>
+        </plugins>
+    </build>
+</project>

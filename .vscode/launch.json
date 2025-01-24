@@ -8,8 +8,9 @@
             "type": "java",
             "name": "Main",
             "request": "launch",
-            "mainClass": "com.jat.ctfxplotsplus/com.jat.Main",
-            "projectName": "ctfxplotsplus"
+            "mainClass": "ctfxplotsplus/com.jat.Main",
+            "projectName": "ctfxplotsplus",
+            "vmArgs": "--module-path \"C:/Program Files/Java/javafx-sdk-23.0.1/lib/\" --add-modules javafx.controls,javafx.fxml,javafx.base,javafx.graphics"
         },
         {
             "type": "java",
@@ -17,12 +18,6 @@
             "request": "launch",
             "mainClass": "${file}"
         },
-        {
-            "type": "java",
-            "name": "Main",
-            "request": "launch",
-            "mainClass": "Main",
-            "projectName": "ctfxplotsplus"
-        }
+
     ]
 }
