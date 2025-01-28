@@ -1,12 +1,10 @@
 package com.jat;
 
 import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+
 import javafx.geometry.Side;
 import javafx.scene.chart.ValueAxis;
 
-import javafx.scene.chart.XYChart.Data;
-import javafx.scene.chart.XYChart.Series;
 import javafx.util.StringConverter;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,13 +13,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.text.DecimalFormat;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+
 
 public class CurrencyAxis extends ValueAxis<Double> {
 
-    private OHLCChart chart;
+    
     public Range range;
     private int MAX_TICK_COUNT = 7; // Adjust as needed
 
@@ -32,7 +28,7 @@ public class CurrencyAxis extends ValueAxis<Double> {
         setTickLabelsVisible(true);
         setTickLabelGap(2);
         setAnimated(false);
-        this.chart = c; // Store reference to the chart
+        
         MAX_TICK_COUNT = 20;
         this.range = new Range(lb, ub);
         
@@ -180,7 +176,7 @@ public class CurrencyAxis extends ValueAxis<Double> {
         //System.out.println("Layout children called");
 
         // Fetch the tick marks
-        ObservableList<TickMark<Double>> tickMarks = getTickMarks();
+        
         //System.out.println("Tick marks: " + tickMarks);
 
         // No need to loop through tick marks and set labels anymore
@@ -268,7 +264,7 @@ public double getDisplayPosition(Double value) {
         double minCurrency = Double.MAX_VALUE;
         double maxCurrency = Double.MIN_VALUE;
     
-        List<Series<LocalDateTime, Double>> data = chart.getChartData();
+        
     
 
                     if (l[0] < minCurrency) {
@@ -290,7 +286,5 @@ public double getDisplayPosition(Double value) {
         
         
     }
-    public void giveChart(OHLCChart chart) {
-        this.chart = chart;
-    }
+
 }

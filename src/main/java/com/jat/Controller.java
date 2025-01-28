@@ -1,6 +1,6 @@
 package com.jat;
 
-import javafx.application.Platform;
+
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.ScrollPane;
@@ -35,7 +35,7 @@ public class Controller {
     @FXML
     private Slider sliderWidth;
 
-    private OHLCChart chart; // Ensure this is properly initialized
+    
 
     @FXML
     void initialize() {

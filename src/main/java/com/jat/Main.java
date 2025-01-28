@@ -13,8 +13,7 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        var javaVersion = SystemInfo.javaVersion();
-        var javafxVersion = SystemInfo.javafxVersion();
+        
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/mainscene.fxml"));
         Parent root = loader.load();

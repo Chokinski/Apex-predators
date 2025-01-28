@@ -102,9 +102,8 @@ public class PlotHandler {
         DateTimeAxis xAxis = new DateTimeAxis(dates[0], dates[1],chart);
         CurrencyAxis yAxis = new CurrencyAxis(vals[0], vals[1],chart);
 
-        this.chart = new OHLCChart(xAxis, yAxis, ohlcDataList);
-        xAxis.giveChart(chart);
-        yAxis.giveChart(chart);
+        this.chart = new OHLCChart(xAxis, yAxis, ohlcDataList,pane);
+
         chart.setSeries(ohlcDataList);
         System.out.println("Chart series set");
         for( OHLCData ohlc : ohlcDataList) {

@@ -2,7 +2,7 @@ package com.jat;
 
 import javafx.geometry.Side;
 import javafx.scene.chart.Axis;
-import javafx.scene.chart.XYChart;
+
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 
 public class DateTimeAxis extends Axis<LocalDateTime> {
 
-    private OHLCChart chart;
+
     private int MAX_TICK_COUNT = 20;
     public Range range;
 
@@ -29,11 +29,11 @@ public class DateTimeAxis extends Axis<LocalDateTime> {
         this.getStyleClass().add("axis-datetime");
         this.tickLengthProperty().set(50);
 
-        this.chart = chart; // Store reference to the chart
+        //this.chart = chart; // Store reference to the chart
         this.range = new Range(lowerBound, upperBound);
     }
 
-    static class Range {
+     public class Range {
         LocalDateTime lowerBound;
         LocalDateTime upperBound;
 
@@ -227,7 +227,5 @@ private List<LocalDateTime> calculateTickPositionsAsync(LocalDateTime lower, Loc
 
     }
 
-    public void giveChart(OHLCChart chart) {
-        this.chart = chart;
-    }
+
 }
