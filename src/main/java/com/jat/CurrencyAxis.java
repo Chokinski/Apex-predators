@@ -1,3 +1,4 @@
+
 package com.jat;
 
 import javafx.collections.FXCollections;
@@ -14,7 +15,22 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.text.DecimalFormat;
 
-
+/**
+ * @author Aidan Korczynski
+ * The CurrencyAxis class extends the ValueAxis<Double> to create a custom axis for displaying currency values.
+ * It supports custom tick label formatting and multi-threaded tick value calculation.
+ * 
+ * <p>Constructor:</p>
+ * <ul>
+ * <li>{@link #CurrencyAxis(double, double, OHLCChart)}: Initializes the axis with specified lower and upper bounds and a reference to the chart.</li>
+ * </ul>
+ * <p>Features:</p>
+ * <ul>
+ * <li>Custom tick label formatting based on the range of values.</li>
+ * <li>Multi-threaded calculation of tick positions for performance optimization.</li>
+ * <li>Support for both horizontal and vertical axes.</li>
+ * </ul>
+ */
 public class CurrencyAxis extends ValueAxis<Double> {
 
     

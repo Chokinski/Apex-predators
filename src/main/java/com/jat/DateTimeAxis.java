@@ -1,3 +1,4 @@
+
 package com.jat;
 
 import javafx.geometry.Side;
@@ -12,7 +13,32 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
-
+/**
+ * 
+ * 
+ * A custom axis for displaying date and time values in a chart.
+ * This class extends the {@link javafx.scene.chart.Axis} class and provides
+ * functionality for handling {@link java.time.LocalDateTime} values.
+ * 
+ * <p>Features include:
+ * <ul>
+ * <li>Setting custom bounds for the axis</li>
+ * <li>Calculating tick values asynchronously</li>
+ * <li>Formatting tick mark labels based on the range</li>
+ * <li>Handling display positions and value conversions</li>
+ * </ul>
+ * 
+ * <p>Example usage:
+ * <pre>
+ * {@code
+ * DateTimeAxis dateTimeAxis = new DateTimeAxis(lowerBound, upperBound, chart);
+ * }
+ * </pre>
+ * 
+ * <p>Note: This class is designed to work with the OHLCChart.
+ * 
+ * @author Aidan Korczynski
+ */
 public class DateTimeAxis extends Axis<LocalDateTime> {
 
 

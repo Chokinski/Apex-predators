@@ -42,9 +42,9 @@ public class Controller {
         try {
             PlotHandler plotHandler = new PlotHandler();
             System.out.println("\nmocking Data...\n\n");
-            ObservableList<OHLCData> data = plotHandler.mockData();
+            ObservableList<OHLCData> data = plotHandler.readData();
             System.out.println("Showing chart....\n\n");
-            plotHandler.showOHLCChart(scrollPane, anchorForChart, true, 1000, data);
+            plotHandler.showOHLCChart(scrollPane, anchorForChart, true, data);
             
             //this.chart = plotHandler.getOHLCChart();
             //System.out.println("Recieved chart instance: " + chart);

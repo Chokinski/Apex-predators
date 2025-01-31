@@ -19,6 +19,79 @@ import java.util.List;
 
 import java.util.concurrent.CompletableFuture;
 
+
+/**
+ * 
+ * The OHLCChart class represents a custom JavaFX chart for displaying OHLC (Open, High, Low, Close) data.
+ * It extends the XYChart class with LocalDateTime for the X-axis and Double for the Y-axis.
+ * The chart is rendered using a Canvas for efficient drawing and supports interactive features such as zooming and tooltips.
+ * 
+ * <p>Features:
+ * <ul>
+ * <li>Displays OHLC data as candlesticks with customizable colors based on the close value.</li>
+ * <li>Supports zooming on both X and Y axes using mouse scroll events.</li>
+ * <li>Displays tooltips with OHLC data when hovering over candlesticks.</li>
+ * <li>Handles large datasets by rendering candlesticks incrementally.</li>
+ * </ul>
+ * </p>
+ * 
+ * <p>Usage:
+ * <pre>
+ * {@code
+ * DateTimeAxis xAxis = new DateTimeAxis();
+ * CurrencyAxis yAxis = new CurrencyAxis();
+ * ObservableList<OHLCData> ohlcDataList = FXCollections.observableArrayList();
+ * AnchorPane pane = new AnchorPane();
+ * OHLCChart chart = new OHLCChart(xAxis, yAxis, ohlcDataList, pane);
+ * }
+ * </pre>
+ * </p>
+ * 
+ * <p>Methods:
+ * <ul>
+ * <li>{@link #OHLCChart(DateTimeAxis, CurrencyAxis, ObservableList, AnchorPane)} - Constructor to initialize the chart.</li>
+ * <li>{@link #setSeries(ObservableList)} - Sets the data series for the chart.</li>
+ * <li>{@link #layoutPlotChildren()} - Lays out the plot children for rendering.</li>
+ * <li>{@link #getCanvas()} - Returns the canvas used for drawing.</li>
+ * <li>{@link #getChartData()} - Returns the current chart data.</li>
+ * <li>{@link #getDataMinMax()} - Returns the minimum and maximum dates in the data.</li>
+ * <li>{@link #getDataMinMaxy()} - Returns the minimum and maximum values in the data.</li>
+ * <li>{@link #addToolTipListener()} - Adds a listener for displaying tooltips on mouse hover.</li>
+ * <li>{@link #clearTooltip()} - Clears the tooltip from the canvas.</li>
+ * <li>{@link #drawTooltip(GraphicsContext, String, double, double)} - Draws a tooltip on the canvas.</li>
+ * <li>{@link #drawCandleStick(GraphicsContext, OHLCData)} - Draws a candlestick on the canvas.</li>
+ * <li>{@link #calculateCandleWidth()} - Calculates the width of a candlestick.</li>
+ * <li>{@link #calculateCandleHeight(Double, Double)} - Calculates the height of a candlestick.</li>
+ * </ul>
+ * </p>
+ * 
+ * <p>Inner Classes:
+ * <ul>
+ * <li>{@link CandleStick} - Represents a candlestick with its position, dimensions, and tooltip text.</li>
+ * </ul>
+ * </p>
+ * 
+ * <p>Overrides:
+ * <ul>
+ * <li>{@link #updateAxisRange()} - [DEPRECATED] Call xAxis, or yAxis.setBounds(lower,upper) to updates the axis range.</li>
+ * <li>{@link #dataItemAdded(Series, int, Data)} - Handles data item addition.</li>
+ * <li>{@link #dataItemChanged(Data)} - Handles data item changes.</li>
+ * <li>{@link #dataItemRemoved(Data, Series)} - Handles data item removal.</li>
+ * <li>{@link #seriesAdded(Series, int)} - Handles series addition.</li>
+ * <li>{@link #seriesRemoved(Series)} - Handles series removal.</li>
+ * </ul>
+ * </p>
+ * 
+ * @param xAxis The X-axis representing time.
+ * @param yAxis The Y-axis representing price.
+ * @param ohlcDataList The list of OHLC data points.
+ * @param pane The AnchorPane to contain the chart.
+ * 
+ * @author Aidan Korczynski
+ */
+
+
+
 public class OHLCChart extends XYChart<LocalDateTime, Double> {
     public Canvas canvas;
     private ObservableList<OHLCData> ohlcDataList;

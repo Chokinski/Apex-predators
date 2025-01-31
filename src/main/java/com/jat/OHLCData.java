@@ -11,10 +11,10 @@ public class OHLCData implements Serializable {
 
     private final LocalDateTime timestamp;
     private final double open;
-    private final double high;
-    private final double low;
-    private final double close;
-    private final double volume;
+    private double high;
+    private double low;
+    private double close;
+    private double volume;
     private final XYChart.Data<LocalDateTime, Number> data;
 
     public OHLCData(LocalDateTime timestamp, double open, double high, double low, double close, double volume) {
