@@ -25,19 +25,20 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
     protected CurrencyAxis yAxis;
     protected DateTimeAxis xAxis;
     public AnchorPane pane;
-
+    public CandleStick activeCandlestick = null; // Track the current candlestick
+    private ArrayList<CandleStick> candlesticks = new ArrayList<>();
     public OHLCChart(DateTimeAxis xAxis, CurrencyAxis yAxis, ObservableList<OHLCData> ohlcDataList, AnchorPane pane) {
         super(xAxis, yAxis);
         this.ohlcDataList = ohlcDataList;
         this.yAxis = yAxis;
         this.xAxis = xAxis;
         this.pane = pane;
-
+        this.pane.getChildren().clear();
         setTitle("OHLC Chart");
         xAxis.setLabel("Time");
         yAxis.setLabel("Price");
         setData(FXCollections.observableArrayList());
-
+        
         // Initial rendering setup
         Series<LocalDateTime, Double> series = new Series<>();
         getData().add(series);
@@ -47,7 +48,7 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
             this.canvas.widthProperty().bind(pane.widthProperty());
             this.canvas.heightProperty().bind(pane.heightProperty());
             this.canvas.setMouseTransparent(true);
-            this.pane.getChildren().add(this.canvas);
+            this.getChildren().add(this.canvas);
             this.setOnScroll(event -> {
                 double deltaY = event.getDeltaY();
                 if (event.isControlDown()) {
@@ -94,7 +95,7 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
                 }
 
             });
-
+            addToolTipListener();
         });
         // Incremental rendering
         // renderCandlesticksIncrementally();
@@ -105,6 +106,39 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
         return dateTime.toInstant(ZoneOffset.UTC).toEpochMilli();
     }
 
+    public void addToolTipListener() {
+
+        
+
+        this.setOnMouseMoved(event -> {
+            boolean foundCandlestick = false; // Flag to track if we found a candlestick under the mouse
+        
+            for (CandleStick cstick : candlesticks) {
+                double topY = Math.min(cstick.y, cstick.y + cstick.height);
+                double bottomY = Math.max(cstick.y, cstick.y + cstick.height);
+        
+                if (event.getX() >= cstick.x && event.getX() <= cstick.x + cstick.width &&
+                    event.getY() >= topY && event.getY() <= bottomY) {
+        
+                    if (activeCandlestick != cstick) { // Only redraw if it's a different candlestick
+                        
+                        drawTooltip(this.canvas.getGraphicsContext2D(), cstick.tooltip, event.getX(), event.getY());
+                        activeCandlestick = cstick; // Update active tooltip
+                    }
+        
+                    foundCandlestick = true;
+                    break; // Stop checking other candlesticks
+                }
+            }
+        
+            // If the mouse is not over any candlestick, clear the tooltip
+            if (!foundCandlestick && activeCandlestick != null) {
+                clearTooltip();
+                activeCandlestick = null;
+            }
+
+        });
+}
     /*
      * TODO: -For dev use, copy template [], allow copilot to check code if its
      * done, if not, copi states [NEED] if finished and states [NEED] copilot will
@@ -157,7 +191,7 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
     }
 
     private XYChart.Data<LocalDateTime, Double> toChartData(OHLCData ohlcData) {
-        return new XYChart.Data<>(ohlcData.getDateTime(), ohlcData.getClose());
+        return new XYChart.Data<>(ohlcData.getDateTime(), Math.min(yAxis.getDisplayPosition(ohlcData.getOpen()), yAxis.getDisplayPosition(ohlcData.getClose())));
     }
 
     @Override
@@ -166,6 +200,7 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
         if (ohlcDataList == null || ohlcDataList.isEmpty() || this.canvas == null) {
             return;
         }
+        candlesticks.clear();
         int chunkSize = Math.max(50, Math.min(ohlcDataList.size() / 10, 250));
         Canvas canvas = this.canvas; // Assuming a canvas is available for drawing
         GraphicsContext gc = this.canvas.getGraphicsContext2D();
@@ -187,7 +222,10 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
             Platform.runLater(() -> {
 
                 gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight()); // Clear previous drawings
-                chunkedData.forEach(chunk -> chunk.forEach(ohlcData -> drawCandleStick(gc, ohlcData)));
+                chunkedData.forEach(chunk -> chunk.forEach(ohlcData ->{ 
+                    drawCandleStick(gc, ohlcData);
+                    
+                }));
             });
         }).exceptionally(ex -> {
             ex.printStackTrace(); // Log any errors
@@ -205,6 +243,7 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
         double close = ohlcData.getClose();
         double high = ohlcData.getHigh();
         double low = ohlcData.getLow();
+        LocalDateTime date = ohlcData.getDateTime();
 
         // Calculate the height of the candlestick body (difference between open and
         // close)
@@ -227,45 +266,53 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
         gc.setLineWidth(1);
 
         // Draw the candle body (rectangular shape)
-        double bodyX = getXAxis().getDisplayPosition(ohlcData.getDateTime()) - candleWidth / 2;
+        double bodyX = getXAxis().getDisplayPosition(date) - candleWidth / 2;
         gc.fillRect(bodyX, bY, candleWidth, cHeight);
 
         // Draw the upper wick (line from high to the top of the body)
-        gc.strokeLine(getXAxis().getDisplayPosition(ohlcData.getDateTime()), uWickY,
-                getXAxis().getDisplayPosition(ohlcData.getDateTime()), bY);
+        gc.strokeLine(getXAxis().getDisplayPosition(date), uWickY,
+                getXAxis().getDisplayPosition(date), bY);
 
         // Draw the lower wick (line from low to the bottom of the body)
-        gc.strokeLine(getXAxis().getDisplayPosition(ohlcData.getDateTime()), lWickY,
-                getXAxis().getDisplayPosition(ohlcData.getDateTime()), bY + cHeight);
+        gc.strokeLine(getXAxis().getDisplayPosition(date), lWickY,
+                getXAxis().getDisplayPosition(date), bY + cHeight);
 
         // Create a tooltip-like string
         String tooltipText = String.format(
                 "DateTime: %s\nOpen: %.2f\nHigh: %.2f\nLow: %.2f\nClose: %.2f",
-                ohlcData.getDateTime(), open, high, low, close);
+                date, open, high, low, close);
 
         // Define the area to check for mouse hover (the area of the candlestick)
         double mouseAreaX = bodyX;
         double mouseAreaY = bY;
         double mouseAreaWidth = candleWidth;
         double mouseAreaHeight = cHeight + (uWickY - lWickY);
+        candlesticks.add(new CandleStick(mouseAreaX, mouseAreaY, mouseAreaWidth, mouseAreaHeight,tooltipText));
 
         // Add mouse event listeners to show the tooltip
-        this.pane.setOnMouseMoved(event -> {
-            if (event.getX() >= mouseAreaX && event.getX() <= mouseAreaX + mouseAreaWidth &&
-                    event.getY() >= mouseAreaY && event.getY() <= mouseAreaY + mouseAreaHeight) {
+        
+    }
 
-                // Draw the tooltip if the mouse is over the candlestick
-                drawTooltip(gc, tooltipText, event.getX(), event.getY());
-            }
+    private void clearTooltip() {
+        Platform.runLater(() -> {
+            GraphicsContext gc = this.canvas.getGraphicsContext2D();
+            //gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight()); // Clear everything
+            layoutPlotChildren(); // Redraw the candlestick chart
         });
     }
 
     // Helper method to draw a tooltip on the canvas
     private void drawTooltip(GraphicsContext gc, String text, double x, double y) {
-        gc.setFill(Color.BLACK);
-        gc.fillRect(x + 10, y + 10, 150, 50); // Draw the background for the tooltip
+
+        Platform.runLater(() -> {
+
+            gc.setFill(Color.color(0, 0, 0, 0.8));
+        gc.fillRect(x + 10, y + 10, 150, 70); // Draw the background for the tooltip
         gc.setFill(Color.WHITE);
         gc.fillText(text, x + 15, y + 25); // Draw the tooltip text
+        
+    });
+        
     }
 
     // Method to get the current chart data
@@ -306,9 +353,15 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
             }
 
         }
-        return new Double[] { minval, maxval };
+                // Add padding (2% of the range) to avoid clipping
+                double range = maxval - minval;
+                double padding = range * 0.02; // 2% padding
+        return new Double[] {minval, maxval};
 
     }
+
+
+
 
     private double calculateCandleWidth() {
         if (ohlcDataList.size() < 2) {
@@ -328,8 +381,7 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
 
     @Override
     protected void updateAxisRange() {
-        // xAxis.invalidateRangeInternal(getDataMinMax());
-        // yAxis.invalidateRangeInternal(getDataMinMaxy());
+        //xAxis.invalidateRangeInternal(getDataMinMax());
     }
 
     @Override
@@ -362,4 +414,25 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
         // Update the plot to reflect the removed series
         layoutPlotChildren();
     }
+    public class CandleStick {
+        public double x=0.0;
+        public double y=0.0;
+        public double width=0.0;
+        public double height=0.0;
+        public String tooltip="";
+    
+        public CandleStick(double x, double y, double width, double height,String tooltip) {
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+            this.tooltip = tooltip;
+        }
+    
+    
+    
+    
+    }
+
 }
+

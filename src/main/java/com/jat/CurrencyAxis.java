@@ -260,31 +260,25 @@ public double getDisplayPosition(Double value) {
     }
 
     public void invalidateRangeInternal(Double[] l) {
-        
-        double minCurrency = Double.MAX_VALUE;
-        double maxCurrency = Double.MIN_VALUE;
+        // Validate input
+        if (l == null || l.length < 2) {
+            return; // Prevent null pointer errors
+        }
+        else {
     
-        
+        // Get min and max values
+        double minCurrency = l[0];
+        double maxCurrency = l[1];
     
-
-                    if (l[0] < minCurrency) {
-                        minCurrency = l[0];
-                    }
-                    if (l[1]> maxCurrency) {
-                        maxCurrency = l[1];
-                    }
-                
-        
-    
-        // Only update bounds if they have changed significantly
+        // Ensure we only update bounds if they actually changed
         if (minCurrency != range.lowerBound || maxCurrency != range.upperBound) {
-            setRange(new Range(minCurrency, maxCurrency),false);
-
-            calculateTickValues(maxCurrency, range);
+            setRange(new Range(minCurrency, maxCurrency), true);
+            calculateTickValues(MAX_TICK_COUNT, new Range(minCurrency, maxCurrency));
             requestAxisLayout();
         }
-        
-        
+    
+        setAutoRanging(true);
+        }
     }
 
 }

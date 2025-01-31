@@ -39,25 +39,27 @@ public class PlotHandler {
 
         return new LocalDateTime[] { minDate, maxDate };
     }
-    private Double[] getMinMaxVals(List<OHLCData> ohlcdatalist) {
-        double minVal = Double.MAX_VALUE;
-        double maxVal = Double.MIN_VALUE;
+private Double[] getMinMaxVals(List<OHLCData> ohlcdatalist) {
+    double minVal = Double.MAX_VALUE;
+    double maxVal = Double.MIN_VALUE;
 
-        for (OHLCData ohlcData : ohlcdatalist) {
-            double lval = ohlcData.getLow();
-            if (lval < minVal) {
-                minVal = lval;
-            }
-            double hval = ohlcData.getHigh();
-            if (hval > maxVal) {
-                maxVal = hval;
-            }
+    for (OHLCData ohlcData : ohlcdatalist) {
+        double lval = ohlcData.getLow();
+        double hval = ohlcData.getHigh();
+        if (lval < minVal) {
+            minVal = lval;
         }
-
-        return new Double[] { minVal, maxVal };
-
-
+        if (hval > maxVal) {
+            maxVal = hval;
+        }
     }
+
+    // Add padding (2% of the range) to avoid clipping
+    double range = maxVal - minVal;
+    double padding = range * 0.2; // 2% padding
+
+    return new Double[] { minVal - padding, maxVal + padding };
+}
 
     public void updateAxesRanges() {
     chart.updateAxisRange();
@@ -106,9 +108,7 @@ public class PlotHandler {
 
         chart.setSeries(ohlcDataList);
         System.out.println("Chart series set");
-        for( OHLCData ohlc : ohlcDataList) {
-            System.out.println(ohlc);
-        }
+
         displayChart(pane);
 
         chart.prefWidthProperty().bind(pane.widthProperty());
