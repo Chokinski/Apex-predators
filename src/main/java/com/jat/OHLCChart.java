@@ -94,7 +94,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class OHLCChart extends XYChart<LocalDateTime, Double> {
     public Canvas canvas;
-    private ObservableList<OHLCData> ohlcDataList;
+    public ObservableList<OHLCData> ohlcDataList;
     protected CurrencyAxis yAxis;
     protected DateTimeAxis xAxis;
     public AnchorPane pane;
@@ -117,6 +117,7 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
         getData().add(series);
 
         Platform.runLater(() -> {
+            //this.xAxis.setBounds(getDataMinMax()[0], getDataMinMax()[1]);
             this.canvas = new Canvas(pane.getWidth(), pane.getHeight());
             this.canvas.widthProperty().bind(pane.widthProperty());
             this.canvas.heightProperty().bind(pane.heightProperty());
@@ -146,7 +147,7 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
                 }
 
                 else {
-                    double lowerEpoch = toEpochMilli(xAxis.range.lowerBound);
+                    /*double lowerEpoch = toEpochMilli(xAxis.range.lowerBound);
                     double upperEpoch = toEpochMilli(xAxis.range.upperBound);
                     double xAxisRange = upperEpoch - lowerEpoch;
 
@@ -157,13 +158,36 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
                     long newLowerEpoch = (long) (midpoint - newRange / 2);
                     long newUpperEpoch = (long) (midpoint + newRange / 2);
 
-                    xAxis.range.lowerBound = LocalDateTime.ofEpochSecond(newLowerEpoch / 1000, 0, ZoneOffset.UTC);
-                    xAxis.range.upperBound = LocalDateTime.ofEpochSecond(newUpperEpoch / 1000, 0, ZoneOffset.UTC);
-
+                    //xAxis.range.lowerBound = LocalDateTime.ofEpochSecond(newLowerEpoch / 1000, 0, ZoneOffset.UTC);
+                    //xAxis.range.upperBound = LocalDateTime.ofEpochSecond(newUpperEpoch / 1000, 0, ZoneOffset.UTC);
+                        
                     xAxis.setBounds(LocalDateTime.ofEpochSecond(newLowerEpoch / 1000, 0, ZoneOffset.UTC),
-                            LocalDateTime.ofEpochSecond(newUpperEpoch / 1000, 0, ZoneOffset.UTC));
+                    xAxis.range.upperBound);*/
+                    if (deltaY > 0) {
+                        if (xAxis.MAX_TICK_COUNT > 30) {
+                            xAxis.MAX_TICK_COUNT = xAxis.MAX_TICK_COUNT + 10;
+                        }
+                        else{
+                            xAxis.MAX_TICK_COUNT = xAxis.MAX_TICK_COUNT + 1;
 
+
+                        }
+                    } else {
+                        if (xAxis.MAX_TICK_COUNT > 30) {
+                            xAxis.MAX_TICK_COUNT = xAxis.MAX_TICK_COUNT - 10;
+                        }
+                        else{
+                            xAxis.MAX_TICK_COUNT = xAxis.MAX_TICK_COUNT - 1;
+
+
+                        }
+                    } // Zoom in/out
+                    
+                    xAxis.setBounds(xAxis.range.lowerBound,
+                    xAxis.range.upperBound);
+                    xAxis.updateMarks();
                     layoutPlotChildren();
+                    
                     event.consume();
                 }
 
@@ -184,8 +208,9 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
         
 
         this.setOnMouseMoved(event -> {
+            
             boolean foundCandlestick = false; // Flag to track if we found a candlestick under the mouse
-        
+           
             for (CandleStick cstick : candlesticks) {
                 double topY = Math.min(cstick.y, cstick.y + cstick.height);
                 double bottomY = Math.max(cstick.y, cstick.y + cstick.height);
@@ -240,6 +265,7 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
      * changing the time period displayed, and selecting data points.
      * 
      */
+    
     public void setSeries(ObservableList<OHLCData> ohlcDataList) {
         this.ohlcDataList = ohlcDataList;
 
@@ -264,8 +290,8 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
     }
 
     private XYChart.Data<LocalDateTime, Double> toChartData(OHLCData ohlcData) {
-        return new XYChart.Data<>(ohlcData.getDateTime(), Math.min(yAxis.getDisplayPosition(ohlcData.getOpen()), yAxis.getDisplayPosition(ohlcData.getClose())));
-    }
+        return new XYChart.Data<>(ohlcData.getDateTime(), yAxis.getDisplayPosition(ohlcData.getClose()));
+    } 
 
     @Override
     protected void layoutPlotChildren() {
@@ -304,14 +330,72 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
             ex.printStackTrace(); // Log any errors
             return null;
         });
+        drawlasttip();
+
+    }
+    public void drawlasttip() {
+
+        Platform.runLater(()->{
+
+            if (this.candlesticks.size() != ohlcDataList.size()) {
+                return;
+            }
+            else{
+            int index = (this.candlesticks.size()-1);
+            CandleStick lastStick = this.candlesticks.get(index);
+            drawLastTooltip(this.canvas.getGraphicsContext2D(),Double.toString(lastStick.close),lastStick.x,lastStick.y,lastStick.color);
+        }
+
+        });
+
+
     }
 
     public Canvas getCanvas() {
         return this.canvas;
     }
+    public void updateData(OHLCData d){
+        if (d.symbol.toLowerCase().strip().equals(ohlcDataList.getFirst().symbol.toLowerCase().strip())){
+        
+        ohlcDataList.add(d);
+        getData().getFirst().getData().add(toChartData(d));
+        xAxis.range.upperBound = d.getDateTime();
+        xAxis.setBounds(xAxis.range.lowerBound, d.getDateTime());
+        xAxis.updateMarks();
+        //xAxis.tickMarks = xAxis.supplyTickValues(xAxis.getRange());
+        if(yAxis.range.upperBound < d.getClose()){
+            Platform.runLater(()->{
+                yAxis.setBounds(yAxis.range.lowerBound,d.getClose());
+                xAxis.updateMarks();
+            });
 
+        }
+        else if(yAxis.range.lowerBound > d.getClose()){
+            Platform.runLater(()->{
+                yAxis.setBounds(d.getClose(),yAxis.range.upperBound);
+                xAxis.updateMarks();
+            });
+        }
+        //int lastIndex = getData().get(0).getData().size() - 1;
+        //getData().get(0).getData().set(lastIndex, toChartData(d));
+        layoutPlotChildren();
+    }
+    else {
+        System.out.println("\nBeing given data from ["+d.symbol.toLowerCase()+"]");
+        System.out.println("\nBut current data is of ["+ohlcDataList.getFirst().symbol.toLowerCase()+"]");
+        System.out.println("\n\nSymbol mismatch.");
+
+    }
+
+    }
     private void drawCandleStick(GraphicsContext gc, OHLCData ohlcData) {
+        if (xAxis.getCandlePos(ohlcData.getDateTime()) == 0.0) {
+            return;
+        }
         // Retrieve values directly from OHLCData
+        if (ohlcData.getDateTime().isBefore(xAxis.range.lowerBound) || ohlcData.getDateTime().isAfter(xAxis.range.upperBound)) {
+            return;
+        }
         double open = ohlcData.getOpen();
         double close = ohlcData.getClose();
         double high = ohlcData.getHigh();
@@ -323,11 +407,11 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
         double cHeight = calculateCandleHeight(open, close);
 
         // Determine the Y position for the body (starting point for open/close)
-        double bY = Math.min(yAxis.getDisplayPosition(open), yAxis.getDisplayPosition(close));
+        double bY = Math.min(yAxis.getCandlePos(open), yAxis.getCandlePos(close));
 
         // Calculate the Y positions for the upper and lower wicks (high and low)
-        double uWickY = yAxis.getDisplayPosition(high);
-        double lWickY = yAxis.getDisplayPosition(low);
+        double uWickY = yAxis.getCandlePos(high);
+        double lWickY = yAxis.getCandlePos(low);
 
         // Set the candle width and determine color (green for upward, red for downward)
         double candleWidth = calculateCandleWidth();
@@ -339,16 +423,16 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
         gc.setLineWidth(1);
 
         // Draw the candle body (rectangular shape)
-        double bodyX = getXAxis().getDisplayPosition(date) - candleWidth / 2;
+        double bodyX = xAxis.getCandlePos(date) - candleWidth / 2;
         gc.fillRect(bodyX, bY, candleWidth, cHeight);
 
         // Draw the upper wick (line from high to the top of the body)
-        gc.strokeLine(getXAxis().getDisplayPosition(date), uWickY,
-                getXAxis().getDisplayPosition(date), bY);
+        gc.strokeLine(xAxis.getCandlePos(date), uWickY,
+        xAxis.getCandlePos(date), bY);
 
         // Draw the lower wick (line from low to the bottom of the body)
-        gc.strokeLine(getXAxis().getDisplayPosition(date), lWickY,
-                getXAxis().getDisplayPosition(date), bY + cHeight);
+        gc.strokeLine(xAxis.getCandlePos(date), lWickY,
+        xAxis.getCandlePos(date), bY + cHeight);
 
         // Create a tooltip-like string
         String tooltipText = String.format(
@@ -360,7 +444,7 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
         double mouseAreaY = bY;
         double mouseAreaWidth = candleWidth;
         double mouseAreaHeight = cHeight + (uWickY - lWickY);
-        candlesticks.add(new CandleStick(mouseAreaX, mouseAreaY, mouseAreaWidth, mouseAreaHeight,tooltipText));
+        candlesticks.add(new CandleStick(mouseAreaX, mouseAreaY, mouseAreaWidth, mouseAreaHeight,tooltipText,close, candlestickColor));
 
         // Add mouse event listeners to show the tooltip
         
@@ -377,13 +461,33 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
     // Helper method to draw a tooltip on the canvas
     private void drawTooltip(GraphicsContext gc, String text, double x, double y) {
 
-        Platform.runLater(() -> {
 
-            gc.setFill(Color.color(0, 0, 0, 0.8));
+
+        gc.setFill(Color.color(0, 0, 0, 0.8));
         gc.fillRect(x + 10, y + 10, 150, 70); // Draw the background for the tooltip
         gc.setFill(Color.WHITE);
         gc.fillText(text, x + 15, y + 25); // Draw the tooltip text
         
+
+        
+    }
+
+
+
+
+    private void drawLastTooltip(GraphicsContext gc, String text, double x, double y,Color color) {
+
+        Platform.runLater(() -> {
+        
+
+
+
+                //gc.setFill(Color.color(0, 0, 0, 0.0));
+                //gc.fillRect(x -5, y + 5, 100, 70); // Draw the background for the tooltip
+                gc.setFill(Color.rgb((int)(color.getRed()*255), (int)(color.getGreen()*255), (int)(color.getBlue()*255)));
+                
+                gc.fillText(text, x - 8, y + 8); // Draw the tooltip text
+
     });
         
     }
@@ -393,22 +497,29 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
         return getData();
     }
 
-    public LocalDateTime[] getDataMinMax() {
+    private LocalDateTime[] getDataMinMax() {
         LocalDateTime minDate = LocalDateTime.MAX;
         LocalDateTime maxDate = LocalDateTime.MIN;
-        for (XYChart.Series<LocalDateTime, Double> series : getData()) {
-            for (XYChart.Data<LocalDateTime, Double> y : series.getData()) {
-                if (y.getXValue().isBefore(minDate)) {
-                    minDate = y.getXValue();
-                }
-                if (y.getXValue().isAfter(maxDate)) {
-                    maxDate = y.getXValue();
-                }
+    
+        // Find the min and max dates
+        for (OHLCData ohlcData : ohlcDataList) {
+            LocalDateTime date = ohlcData.getDateTime();
+            if (date.isBefore(minDate)) {
+                minDate = date;
             }
-
+            if (date.isAfter(maxDate)) {
+                maxDate = date;
+            }
         }
-        return new LocalDateTime[] { minDate, maxDate };
+    
 
+             // Define a fixed padding duration (e.g., 10 minutes)
+    long fixedPaddingMinutes = 30;  // You can change this to whatever duration you need
+
+  
+    maxDate = maxDate.plusMinutes(fixedPaddingMinutes); // Add padding to the maxDate
+    
+        return new LocalDateTime[] { minDate, maxDate };
     }
 
     public Double[] getDataMinMaxy() {
@@ -437,15 +548,21 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
 
 
     private double calculateCandleWidth() {
-        if (ohlcDataList.size() < 2) {
+        if (xAxis.MAX_TICK_COUNT < 2) {
             return 10; // Default width
         }
-
+    
         double axisLength = xAxis.getWidth();
-        double numDataPoints = ohlcDataList.size();
-
-        double calculatedWidth = axisLength / (numDataPoints + 2); // Adjust for margins
-        return Math.max(2.5, Math.min(calculatedWidth, 8)); // Set sensible min/max limits
+        double numDataPoints = xAxis.MAX_TICK_COUNT;
+    
+        // Calculate the width dynamically based on the axis length and number of data points
+        double calculatedWidth = axisLength / (numDataPoints * 1.5); // Adjust factor as needed
+    
+        // Set sensible min/max limits
+        double minWidth = 3;
+        double maxWidth = 8;
+    
+        return Math.max(minWidth, Math.min(calculatedWidth, maxWidth));
     }
 
     private double calculateCandleHeight(Double o, Double c) {
@@ -467,6 +584,7 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
     @Override
     protected void dataItemChanged(Data<LocalDateTime, Double> item) {
         // Update the plot to reflect the changed data item
+        layoutPlotChildren();
 
     }
 
@@ -493,13 +611,16 @@ public class OHLCChart extends XYChart<LocalDateTime, Double> {
         public double width=0.0;
         public double height=0.0;
         public String tooltip="";
-    
-        public CandleStick(double x, double y, double width, double height,String tooltip) {
+        public double close=0.0;
+        public Color color;
+        public CandleStick(double x, double y, double width, double height,String tooltip, double close,Color color) {
             this.x = x;
             this.y = y;
             this.width = width;
             this.height = height;
             this.tooltip = tooltip;
+            this.close = close;
+            this.color = color;
         }
     
     

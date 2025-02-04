@@ -42,7 +42,7 @@ public class CurrencyAxis extends ValueAxis<Double> {
         setAutoRanging(false);
         setSide(Side.RIGHT);
         setTickLabelsVisible(true);
-        setTickLabelGap(2);
+        setTickLabelGap(0);
         setAnimated(false);
         
         MAX_TICK_COUNT = 20;
@@ -208,9 +208,14 @@ public Double getValueForDisplay(double displayPosition) {
 
     double axisLength = getSide().isHorizontal() ? getWidth() : getHeight();
 
-    // Invert the position for vertical axis to make larger values go up
+    // Ensure the axis length is not zero (prevents division by zero)
+    if (axisLength == 0) {
+        return this.range.lowerBound;
+    }
+
+    // Adjust displayPosition for vertical axis (invert Y-coordinates)
     if (getSide().isVertical()) {
-        displayPosition = axisLength - displayPosition;
+        displayPosition = (axisLength - displayPosition) + getInsets().getTop();
     }
 
     return this.range.lowerBound + (displayPosition / axisLength) * range;
@@ -219,16 +224,39 @@ public Double getValueForDisplay(double displayPosition) {
 @Override
 public double getDisplayPosition(Double value) {
     double range = this.range.upperBound - this.range.lowerBound;
-    if (range == 0) {
-        return 0;
-    }
+    if (range == 0) return 0;
 
     double axisLength = getSide().isHorizontal() ? getWidth() : getHeight();
+    if (axisLength == 0) return 0; // Prevent division by zero
+
     double position = (value - this.range.lowerBound) / range * axisLength;
 
-    // Invert the position for vertical axis to make larger values go up
+    // ✅ Ensure correct inversion for vertical axes
     if (getSide().isVertical()) {
-        position = axisLength - position;
+        position = axisLength - position; // Invert so larger values go UP
+    }
+
+    return position;
+}
+
+
+public double getCandlePos(Double value) {
+    double range = this.range.upperBound - this.range.lowerBound;
+    if (range == 0) return 0;
+
+    double axisLength = getSide().isHorizontal() ? getWidth() : getHeight();
+    if (axisLength == 0) return 0; // Prevent division by zero
+
+    // Calculate the base position without offset
+    double position = (value - this.range.lowerBound) / range * axisLength;
+
+    // Add your manual offset (can be positive or negative)
+    double offset = -37.5; // Example offset value, adjust as needed
+    position += offset;
+
+    // ✅ Ensure correct inversion for vertical axes
+    if (getSide().isVertical()) {
+        position = axisLength - position; // Invert so larger values go UP
     }
 
     return position;

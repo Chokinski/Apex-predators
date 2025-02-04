@@ -107,7 +107,8 @@ public class PlotHandler {
                 maxDate = date;
             }
         }
-
+         // Define a fixed padding duration (e.g., 10 minutes)
+    long fixedPaddingMinutes = 300;  // You can change this to whatever duration you need
         return new LocalDateTime[] { minDate, maxDate };
     }
 private Double[] getMinMaxVals(List<OHLCData> ohlcdatalist) {
@@ -129,7 +130,7 @@ private Double[] getMinMaxVals(List<OHLCData> ohlcdatalist) {
     double range = maxVal - minVal;
     double padding = range * 0.2; // 2% padding
 
-    return new Double[] { minVal - padding, maxVal + padding };
+    return new Double[] {minVal, maxVal};
 }
 
     public void updateAxesRanges() {
@@ -172,7 +173,7 @@ private Double[] getMinMaxVals(List<OHLCData> ohlcdatalist) {
         ObservableList<OHLCData> ohlcDataList) throws IOException {
         LocalDateTime[] dates = getMinMaxDates(ohlcDataList);
         Double[] vals = getMinMaxVals(ohlcDataList);
-        DateTimeAxis xAxis = new DateTimeAxis(dates[0], dates[1],chart);
+        DateTimeAxis xAxis = new DateTimeAxis(dates[0], dates[1],ohlcDataList);
         CurrencyAxis yAxis = new CurrencyAxis(vals[0], vals[1],chart);
 
         this.chart = new OHLCChart(xAxis, yAxis, ohlcDataList,pane);

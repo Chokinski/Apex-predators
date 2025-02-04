@@ -1,6 +1,8 @@
 
 package com.jat;
 
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Side;
 import javafx.scene.chart.Axis;
 
@@ -42,21 +44,29 @@ import java.util.stream.Collectors;
 public class DateTimeAxis extends Axis<LocalDateTime> {
 
 
-    private int MAX_TICK_COUNT = 20;
+    public int MAX_TICK_COUNT = 100;
     public Range range;
-
-    public DateTimeAxis(LocalDateTime lowerBound, LocalDateTime upperBound, OHLCChart chart) {
+    public ObservableList<OHLCData> dataset;
+    public List<LocalDateTime> tickMarks;
+    public List<LocalDateTime> tickValues = new ArrayList<>();
+    public DateTimeAxis(LocalDateTime lowerBound, LocalDateTime upperBound, ObservableList<OHLCData> dataset) {
         // this(lowerBound, upperBound, chart);
         setAutoRanging(false); // Disable auto-ranging
         setSide(Side.BOTTOM);
         setTickLabelsVisible(true);
-        setTickLabelGap(5);
+        setTickLabelGap(0);
         setAnimated(false);
         this.getStyleClass().add("axis-datetime");
-        this.tickLengthProperty().set(50);
-
+        this.tickLengthProperty().set(1);
+        this.tickMarkVisibleProperty().set(false);
+        
+        this.dataset=dataset;
         //this.chart = chart; // Store reference to the chart
         this.range = new Range(lowerBound, upperBound);
+        setRange(new Range(lowerBound, upperBound), true);
+        //System.out.println("Info:" + isTickLabelsVisible() + " " + isTickMarkVisible() + " " + isAutoRanging());
+        this.tickMarks =supplyTickValues(getRange());
+        this.tickValues = supplyTickValues(getRange());
     }
 
      public class Range {
@@ -76,6 +86,7 @@ public class DateTimeAxis extends Axis<LocalDateTime> {
             // System.out.println("Setting DateTimeAxis range: " + r.lowerBound + " to " +
             // r.upperBound);
             setBounds(r.lowerBound, r.upperBound);
+            //System.out.println("Setting range: " + r.lowerBound + " to " + r.upperBound);
         } else {
             throw new IllegalArgumentException("Expected range of type Range");
         }
@@ -86,10 +97,18 @@ public class DateTimeAxis extends Axis<LocalDateTime> {
         // upperBound);
         range.lowerBound = lowerBound;
         range.upperBound = upperBound;
+        
         invalidateRange();
         requestAxisLayout();
     }
-
+public void updateMarks(){
+try {
+    this.tickMarks =supplyTickValues(getRange());
+    this.tickValues = supplyTickValues(getRange());
+}
+catch (Exception e){
+    System.out.println("Reached end of data set.");}
+}
     @Override
     protected Range getRange() {
         // System.out.println("Getting DateTimeAxis range: " + this.lowerBound + " to "
@@ -97,62 +116,67 @@ public class DateTimeAxis extends Axis<LocalDateTime> {
         return range;
     }
 
-@Override
-protected List<LocalDateTime> calculateTickValues(double length, Object range) {
-    if (!(range instanceof Range)) {
-        System.out.println("Range is not of type Range");
-        return List.of(); // Return an empty list if range is invalid
-    }
-
-    Range r = (Range) range;
-    long rangeInMinutes = r.lowerBound.until(r.upperBound, java.time.temporal.ChronoUnit.MINUTES);
-
-    // Calculate the tick interval based on the maximum tick count
-    long tickInterval = Math.max(1, rangeInMinutes / (MAX_TICK_COUNT - 1));
-
-    return calculateTickPositionsAsync(r.lowerBound, r.upperBound, tickInterval);
-}
-
-private List<LocalDateTime> calculateTickPositionsAsync(LocalDateTime lower, LocalDateTime upper, long tickInterval) {
-    // Determine the total number of tick values
-    long totalTicks = (long) Math.ceil((double) lower.until(upper, ChronoUnit.MINUTES) / tickInterval);
-
-    // Create a thread pool
-    ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-
-    // Create futures for tick generation in chunks
-    int chunkSize = 1000; // Number of ticks per thread
-    List<CompletableFuture<List<LocalDateTime>>> futures = new ArrayList<>();
-
-    for (long i = 0; i < totalTicks; i += chunkSize) {
-        long startIndex = i;
-        long endIndex = Math.min(i + chunkSize, totalTicks);
-
-        CompletableFuture<List<LocalDateTime>> future = CompletableFuture.supplyAsync(() -> {
-            List<LocalDateTime> tickValues = new ArrayList<>();
-            for (long j = startIndex; j < endIndex; j++) {
-                LocalDateTime tickValue = lower.plusMinutes(j * tickInterval);
-                if (!tickValue.isAfter(upper)) {
-                    tickValues.add(tickValue);
-                }
+    @Override
+    protected List<LocalDateTime> calculateTickValues(double length, Object range) {
+        if (!(range instanceof Range)) {
+            System.out.println("Range is not of type Range");
+            return List.of(); // Return an empty list if range is invalid
+        }
+    
+        Range r = (Range) range;
+    
+        if (this.dataset == null || this.dataset.isEmpty()) {
+            System.out.println("OHLC Data List is empty or not initialized.");
+            return List.of();
+        }
+        
+        List<LocalDateTime> tickValues = new ArrayList<>();
+        this.dataset.sort((a, b) -> a.getDateTime().compareTo(b.getDateTime()));
+        int startIndex = Math.max(0, this.dataset.size() - MAX_TICK_COUNT);
+        for (int i = startIndex; i < this.dataset.size(); i++) {
+            if ((i - startIndex) % 5 == 0) { // Add every 5th tick mark
+                tickValues.add(this.dataset.get(i).getDateTime());
             }
-            return tickValues;
-        }, executor);
-
-        futures.add(future);
+        }
+    
+        tickValues.sort(LocalDateTime::compareTo); // Ensure tick marks are in chronological order
+        return tickValues;
     }
+    
+    protected List<LocalDateTime> supplyTickValues(Object range) {
+        if (!(range instanceof Range)) {
+            System.out.println("Range is not of type Range");
+            return List.of(); // Return an empty list if range is invalid
+        }
+    
+        Range r = (Range) range;
+    
+        if (this.dataset == null || this.dataset == null || this.dataset.isEmpty()) {
+            System.out.println("OHLC Data List is empty or not initialized.");
+            return List.of();
+        }
+    
+        List<LocalDateTime> tickValues = new ArrayList<>();
+        this.dataset.sort((a, b) -> a.getDateTime().compareTo(b.getDateTime()));
+        for (int i = this.dataset.size() - MAX_TICK_COUNT; i != this.dataset.size(); i++){
+            tickValues.add(this.dataset.get(i).getDateTime());
+        }
+        LocalDateTime max = LocalDateTime.MIN;
+        LocalDateTime min = LocalDateTime.MAX;
+        for (LocalDateTime data : tickValues){
+            if (data.isBefore(min)){
+                min = data;
+            }
+            if (data.isAfter(max)){
+                max = data;
+            }
 
-    // Combine results from all futures
-    List<LocalDateTime> tickValues = futures.stream()
-            .map(CompletableFuture::join)
-            .flatMap(List::stream)
-            .collect(Collectors.toList());
-
-    // Shutdown the executor service
-    executor.shutdown();
-
-    return tickValues;
-}
+        }
+        setRange(new Range(min,max), false);
+        tickValues.sort(LocalDateTime::compareTo); // Ensure tick marks are in chronological order
+        //System.out.println("Tickvaluesize = " + tickValues.size());
+        return tickValues;
+    }
 
     @Override
     protected Object autoRange(double length) {
@@ -168,33 +192,174 @@ private List<LocalDateTime> calculateTickPositionsAsync(LocalDateTime lower, Loc
     }
 
     @Override
-    public double getDisplayPosition(LocalDateTime dateTime) {
-        long rangeInMinutes = range.lowerBound.until(range.upperBound, java.time.temporal.ChronoUnit.MINUTES);
-        if (rangeInMinutes <= 0) {
-            return 0; // Avoid division by zero or negative range
+    public ObservableList<TickMark<LocalDateTime>> getTickMarks() {
+        ObservableList<TickMark<LocalDateTime>> tickMarks = FXCollections.observableArrayList();
+        
+        if (range == null || range.lowerBound == null || range.upperBound == null) {
+            return FXCollections.observableArrayList(); // Return an empty list if range is invalid
         }
+    
+        for (int i = 0; i < this.tickValues.size(); i++) {
+            if (MAX_TICK_COUNT > 20 && MAX_TICK_COUNT < 50) {
 
-        double axisLength = getSide().isHorizontal() ? getWidth() : getHeight();
-        long dateTimeOffset = range.lowerBound.until(dateTime, java.time.temporal.ChronoUnit.MINUTES);
+                if (i % 5 == 0) { // Add every 5th tick mark
+                    
+                    LocalDateTime tickValue = this.tickValues.get(i);
+                    double position = getDisplayPosition(tickValue);
+                    TickMark<LocalDateTime> tickMark = new TickMark<>();
+                    tickMark.setValue(tickValue);
+                    tickMark.setPosition(position);
+                    
+                    //System.out.println("Generated tick mark: " + tickValue + " at position: " + position);
+                    tickMarks.add(tickMark);
+                }
 
-        // Calculate the position with respect to the adjusted tick interval
-        double position = (axisLength * dateTimeOffset) / rangeInMinutes;
 
-        return position;
+            }
+            else if(MAX_TICK_COUNT < 20&& MAX_TICK_COUNT < 100){
+                
+                if (i % 2 == 0) { // Add every 5th tick mark
+                    
+                    LocalDateTime tickValue = this.tickValues.get(i);
+                    double position = getDisplayPosition(tickValue);
+                    TickMark<LocalDateTime> tickMark = new TickMark<>();
+                    tickMark.setValue(tickValue);
+                    tickMark.setPosition(position);
+                    
+                    //System.out.println("Generated tick mark: " + tickValue + " at position: " + position);
+                    tickMarks.add(tickMark);
+                }
+            }
+            else if (50<MAX_TICK_COUNT && MAX_TICK_COUNT < 100) {
+                
+                if (i % 10 == 0) { // Add every 5th tick mark
+                    
+                    LocalDateTime tickValue = this.tickValues.get(i);
+                    double position = getDisplayPosition(tickValue);
+                    TickMark<LocalDateTime> tickMark = new TickMark<>();
+                    tickMark.setValue(tickValue);
+                    tickMark.setPosition(position);
+                    
+                    //System.out.println("Generated tick mark: " + tickValue + " at position: " + position);
+                    tickMarks.add(tickMark);
+                }
+
+
+            }
+
+            else if (MAX_TICK_COUNT > 100&& MAX_TICK_COUNT < 200) {
+                
+                if (i % 20 == 0) { // Add every 5th tick mark
+                    
+                    LocalDateTime tickValue = this.tickValues.get(i);
+                    double position = getDisplayPosition(tickValue);
+                    TickMark<LocalDateTime> tickMark = new TickMark<>();
+                    tickMark.setValue(tickValue);
+                    tickMark.setPosition(position);
+                    
+                    //System.out.println("Generated tick mark: " + tickValue + " at position: " + position);
+                    tickMarks.add(tickMark);
+                }
+
+
+            }
+            else if (MAX_TICK_COUNT > 200 && MAX_TICK_COUNT < 500) {
+                
+                if (i % 50 == 0) { // Add every 5th tick mark
+                    
+                    LocalDateTime tickValue = this.tickValues.get(i);
+                    double position = getDisplayPosition(tickValue);
+                    TickMark<LocalDateTime> tickMark = new TickMark<>();
+                    tickMark.setValue(tickValue);
+                    tickMark.setPosition(position);
+                    
+                    //System.out.println("Generated tick mark: " + tickValue + " at position: " + position);
+                    tickMarks.add(tickMark);
+                }
+
+
+            }
+
+            else if (MAX_TICK_COUNT > 500) {
+                
+                if (i % 100 == 0) { // Add every 5th tick mark
+                    
+                    LocalDateTime tickValue = this.tickValues.get(i);
+                    double position = getDisplayPosition(tickValue);
+                    TickMark<LocalDateTime> tickMark = new TickMark<>();
+                    tickMark.setValue(tickValue);
+                    tickMark.setPosition(position);
+                    
+                    //System.out.println("Generated tick mark: " + tickValue + " at position: " + position);
+                    tickMarks.add(tickMark);
+                }
+
+
+            }
+            if (tickMarks.size() >= MAX_TICK_COUNT) {
+                break; // Stop if we have enough tick marks
+            }
+
+        }
+        return tickMarks;
     }
 
     @Override
-    public LocalDateTime getValueForDisplay(double displayPosition) {
-        long rangeInMinutes = range.lowerBound.until(range.upperBound, java.time.temporal.ChronoUnit.MINUTES);
-        if (rangeInMinutes <= 0) {
-            return range.lowerBound;
+    public double getDisplayPosition(LocalDateTime dateTime) {
+        if (range == null || range.lowerBound == null || range.upperBound == null) {
+            return 0;
         }
+        
 
+        long totalRangeMinutes = range.lowerBound.until(range.upperBound, ChronoUnit.MINUTES);
+        if (totalRangeMinutes <= 0) return 0; // Prevent division by zero
+    
         double axisLength = getSide().isHorizontal() ? getWidth() : getHeight();
-        long offset = (long) ((displayPosition * rangeInMinutes) / axisLength);
-        System.out.println("Display position: " + displayPosition + ", offset: " + offset);
-        return range.lowerBound.plusMinutes(offset);
+        long elapsedMinutes = range.lowerBound.until(dateTime, ChronoUnit.MINUTES);
+        
+        double position = (elapsedMinutes / (double) totalRangeMinutes) * axisLength;
+    
+        //System.out.println("Calculated display position for " + dateTime + ": " + position);
+        return position;
     }
+
+
+
+    public double getCandlePos(LocalDateTime dateTime) {
+        if (range == null || range.lowerBound == null || range.upperBound == null) {
+            return 0;
+        }
+    
+        // Fetch tick values once instead of calling supplyTickValues repeate
+        for (LocalDateTime tickMark : this.tickMarks) {
+            if (tickMark.equals(dateTime)) {
+                return getDisplayPosition(tickMark) + 15;
+            }
+        }
+        //this.tickMarks.add(dateTime);
+        return 0.0;
+    }
+
+@Override
+public LocalDateTime getValueForDisplay(double displayPosition) {
+    if (range == null || range.lowerBound == null || range.upperBound == null) {
+        return null;
+    }
+
+    List<TickMark<LocalDateTime>> tickMarks = getTickMarks();
+    TickMark<LocalDateTime> closestTick = null;
+    double minDistance = Double.MAX_VALUE;
+
+    for (TickMark<LocalDateTime> tickMark : tickMarks) {
+        double distance = Math.abs(tickMark.getPosition() - displayPosition);
+        if (distance < minDistance) {
+            minDistance = distance;
+            closestTick = tickMark;
+        }
+    }
+
+    return closestTick != null ? closestTick.getValue() : range.lowerBound;
+}
 
     @Override
     public boolean isValueOnAxis(LocalDateTime dateTime) {
