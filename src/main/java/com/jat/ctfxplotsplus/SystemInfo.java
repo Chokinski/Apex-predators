@@ -1,4 +1,4 @@
-package com.jat;
+package com.jat.ctfxplotsplus;
 
 public class SystemInfo {
 

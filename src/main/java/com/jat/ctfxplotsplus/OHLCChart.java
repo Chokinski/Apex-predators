@@ -1,4 +1,4 @@
-package com.jat;
+package com.jat.ctfxplotsplus;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;

@@ -1,5 +1,5 @@
 
-package com.jat;
+package com.jat.ctfxplotsplus;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -61,6 +61,9 @@ public class DateTimeAxis extends Axis<LocalDateTime> {
         this.tickMarkVisibleProperty().set(false);
         
         this.dataset=dataset;
+        if (dataset.size() < MAX_TICK_COUNT) {
+            MAX_TICK_COUNT = dataset.size();
+        }
         //this.chart = chart; // Store reference to the chart
         this.range = new Range(lowerBound, upperBound);
         setRange(new Range(lowerBound, upperBound), true);
@@ -216,7 +219,7 @@ catch (Exception e){
 
 
             }
-            else if(MAX_TICK_COUNT < 20&& MAX_TICK_COUNT < 100){
+            else if(MAX_TICK_COUNT < 20&& MAX_TICK_COUNT < 100 && MAX_TICK_COUNT > 5){
                 
                 if (i % 2 == 0) { // Add every 5th tick mark
                     
@@ -296,8 +299,20 @@ catch (Exception e){
 
 
             }
-            if (tickMarks.size() >= MAX_TICK_COUNT) {
+            else if (tickMarks.size() >= MAX_TICK_COUNT) {
                 break; // Stop if we have enough tick marks
+            }
+            else if ( MAX_TICK_COUNT < 5 || MAX_TICK_COUNT == 5) {
+                LocalDateTime tickValue = this.tickValues.get(i);
+                double position = getDisplayPosition(tickValue);
+                TickMark<LocalDateTime> tickMark = new TickMark<>();
+                tickMark.setValue(tickValue);
+                tickMark.setPosition(position);
+                
+                //System.out.println("Generated tick mark: " + tickValue + " at position: " + position);
+                tickMarks.add(tickMark);
+
+
             }
 
         }

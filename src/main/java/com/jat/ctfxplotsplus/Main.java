@@ -1,4 +1,4 @@
-package com.jat;
+package com.jat.ctfxplotsplus;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -15,12 +15,12 @@ public class Main extends Application {
     public void start(Stage stage) throws Exception {
         
 
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/mainscene.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/jat/ctfxplotsplus/mainscene.fxml"));
         Parent root = loader.load();
         Scene scene = new Scene(root);
 
         // Add the CSS file to the scene
-        scene.getStylesheets().add(getClass().getResource("/main.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("/com/jat/ctfxplotsplus/main.css").toExternalForm());
 
         stage.setScene(scene);
         stage.show();

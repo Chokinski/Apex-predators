@@ -1,4 +1,4 @@
-package com.jat;
+package com.jat.ctfxplotsplus;
 
 
 import java.util.stream.IntStream;

@@ -1,4 +1,4 @@
-package com.jat;
+package com.jat.ctfxplotsplus;
 
 
 import javafx.collections.FXCollections;
@@ -141,7 +141,7 @@ private Double[] getMinMaxVals(List<OHLCData> ohlcdatalist) {
         ObservableList<OHLCData> ohlcData = FXCollections.observableArrayList();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
     
-        try (InputStream is = getClass().getResourceAsStream("/data.txt");
+        try (InputStream is = getClass().getResourceAsStream("/com/jat/ctfxplotsplus/data.txt");
             InputStreamReader isr = new InputStreamReader(is);
             BufferedReader reader = new BufferedReader(isr)) {
     

@@ -1,4 +1,4 @@
-package com.jat;
+package com.jat.ctfxplotsplus;
 
 import javafx.scene.chart.XYChart;
 import java.io.Serializable;
